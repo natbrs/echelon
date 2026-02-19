@@ -41,11 +41,11 @@
     </script>
 
     <script>
-      const { EchelonThemeManager } = ChromeUtils.importESModule("chrome://modules/content/EchelonThemeManager.sys.mjs");
+      const { EchelonThemeManager } = ChromeUtils.import("chrome://modules/content/EchelonThemeManager.js");
       let g_themeManager = new EchelonThemeManager;
       g_themeManager.init(
         document.documentElement,
-        { style: true }
+        { bools: ["Echelon.Appearance.XP"] }
       );
     </script>
 
@@ -110,7 +110,7 @@
       <div id="checkboxContainer" class="dialogRow" hidden="hidden">
         <div />
         <!-- spacer -->
-        <xul:checkbox id="checkbox" native="" oncommand="Dialog.onCheckbox()" />
+        <xul:checkbox id="checkbox" oncommand="Dialog.onCheckbox()" />
       </div>
     </div>
   </dialog>

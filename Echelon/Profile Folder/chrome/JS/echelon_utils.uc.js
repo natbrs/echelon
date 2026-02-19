@@ -9,8 +9,6 @@
 // @backgroundmodule
 // ==/UserScript==
 
-let brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
-
 function renderElement(nodeName, attrMap = {}, childrenArr = [])
 {
 	let namespace = "html";
@@ -49,18 +47,13 @@ function renderElement(nodeName, attrMap = {}, childrenArr = [])
 	return element;
 }
 
-async function waitForElement(query, parent = this.document, timeout = 10000)
+async function waitForElement(query, parent = this.document, timeout = -1)
 {
 	let startTime = Date.now();
 	
 	while (parent.querySelector(query) == null)
 	{
-		// XXX(isabella): Be very careful with disabling the timeout. If requestAnimationFrame is called too
-		// deeply, then the entire requestAnimationFrame function will be broken globally across the entire
-		// window. The maximum depth that it can attain is the signed 32-bit integer maximum (2,147,483,647)
-		//
-		// https://github.com/mozilla-firefox/firefox/blob/5cc1a7909a4e4abb7db47926c88c2d173158e9d2/dom/base/RequestCallbackManager.h#L47-L50
-		if (timeout > -1 && Date.now() > startTime + timeout)
+		if (timeout > -1 && Date.now > startTime + timeout)
 		{
 			return null;
 		}
@@ -124,135 +117,106 @@ class PrefUtils
 }
 
 class BrandUtils
-{	
-	static bundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
-
-	static getBrandingKey(key)
+{
+	static getBrowserName()
 	{
-		return this.bundle.GetStringFromName(key);
+		let spoof = PrefUtils.tryGetStringPref("Echelon.Option.BrowserSpoof");
+		if (spoof == "")
+		{
+			return Services.appinfo.name;
+		}
+		return spoof;
+	}
+
+	static getUpdateChannel()
+	{
+		let spoof = PrefUtils.tryGetStringPref("Echelon.Option.ChannelSpoof");
+		if (spoof == "")
+		{
+			return Services.appinfo.defaultUpdateChannel;
+		}
+		return spoof;
+	}
+
+	static getShortProductName()
+	{
+		let custom = PrefUtils.tryGetStringPref("Echelon.Option.BrandName");
+		if (custom != "")
+		{
+			return custom;
+		}
+
+		switch (this.getUpdateChannel())
+		{
+			case "nightly":
+				return "Nightly";
+			case "aurora":
+				return "Aurora";
+			default:
+				return this.getBrowserName();
+		}
+	}
+
+	static getDefaultProductName()
+	{
+		switch (this.getUpdateChannel())
+		{
+			case "nightly":
+				return "Nightly";
+			case "aurora":
+				return "Aurora";
+			default:
+				if (this.getBrowserName() == "Firefox")
+				{
+					return "Mozilla Firefox";
+				}
+				return this.getBrowserName();
+		}
+	}
+
+	static getFullProductName()
+	{
+		let custom = PrefUtils.tryGetStringPref("Echelon.Option.BrandName");
+		if (custom == "")
+		{
+			return this.getDefaultProductName();
+		}
+		return custom;
+	}
+
+	static getDefaultTitles()
+	{
+		let product = this.getFullProductName();
+		return {
+			"default": product,
+			"private": `${product} (Private Browsing)`,
+			"contentDefault": `CONTENTTITLE - ${product}`,
+			"contentPrivate": `CONTENTTITLE - ${product} (Private Browsing)`
+		};
+	}
+
+	static getUserTitles()
+	{
+		let result = this.getDefaultTitles();
+		
+		const prefmap = {
+			"default": "Echelon.WindowTitle.Default",
+			"private": "Echelon.WindowTitle.Private",
+			"contentDefault": "Echelon.WindowTitle.ContentDefault",
+			"contentPrivate": "Echelon.WindowTitle.ContentPrivate"
+		};
+
+		for (const prop in prefmap)
+		{
+			let string = PrefUtils.tryGetStringPref(prefmap[prop]);
+			if (string != "")
+			{
+				result[prop] = string;
+			}
+		}
+
+		return result;
 	}
 }
 
-class VersionUtils {
-    static async getEchelonVer() {
-        try {
-            const response = await fetch("chrome://userchrome/content/version.json");
-			const data = await response.json();
-
-			const version = data.version;
-
-            return version;
-
-        } catch (error) {
-            console.error('Error fetching JSON:', error);
-            throw error;
-        }
-    }
-}
-
-class ThemeUtils
-{
-    static stylePreset = {
-		0: { // Firefox 4
-			"style": "0",
-			"pageStyle": "0",
-			"basedOn": "4.0",
-			"newlogo": false
-		},
-		1: { // Firefox 5
-			"style": "1",
-			"pageStyle": "0",
-			"basedOn": "5.0",
-			"newlogo": false
-		},
-		2: { // Firefox 6
-			"style": "2",
-			"pageStyle": "0",
-			"basedOn": "6.0",
-			"newlogo": false
-		},
-		3: { // Firefox 8
-			"style": "3",
-			"pageStyle": "1",
-			"basedOn": "8.0",
-			"newlogo": false
-		},
-		4: { // Firefox 10
-			"style": "4",
-			"pageStyle": "1",
-			"basedOn": "10.0",
-			"newlogo": false
-		},
-        5: { // Firefox 14
-			"style": "5",
-			"pageStyle": "2",
-			"basedOn": "14.0",
-			"newlogo": false
-		},
-        6: { // Firefox 28
-			"style": "5",
-			"pageStyle": "3",
-			"basedOn": "28.0",
-			"newlogo": true
-		},
-        7: { // Firefox 29
-			"style": "6",
-			"pageStyle": "3",
-			"basedOn": "29.0",
-			"newlogo": true
-		},
-		8: { // Firefox 56
-			"style": "7",
-			"pageStyle": "4",
-			"basedOn": "56.0.2",
-			"newlogo": true
-		}
-	};
-
-    static getPreferredPreset() {
-		let prefChoice = PrefUtils.tryGetIntPref("Echelon.Appearance.Preset");
-
-        if (Object.keys(ThemeUtils.stylePreset).includes(`${prefChoice}`)) {
-            return `${prefChoice}`;
-        } else {
-            return "0";
-        }
-    }
-
-    static getPresetKey(key) {
-        let prefChoice = ThemeUtils.getPreferredPreset();
-
-		return ThemeUtils.stylePreset[prefChoice][key];
-    }
-
-    static setStylePreset() {
-        PrefUtils.trySetIntPref("Echelon.Appearance.Style", ThemeUtils.getPresetKey("style"));
-        PrefUtils.trySetIntPref("Echelon.Appearance.Homepage.Style", ThemeUtils.getPresetKey("pageStyle"));
-        PrefUtils.trySetBoolPref("Echelon.Appearance.NewLogo", ThemeUtils.getPresetKey("newlogo"));
-
-		// set media queries as attributes, these don't have to be updated so these can be here
-		let queries = [
-			"-moz-ev-native-controls-patch",
-			"-moz-windows-compositor",
-		]
-		
-		queries.forEach((query) => {
-				let queryAttr = query.slice(1);
-				if (window.matchMedia(`(${query})`).matches) {
-					document.documentElement.setAttribute(queryAttr, "true");
-				}
-			}
-		);
-    }
-}
-
-const presetObserver = {
-    observe: function (subject, topic, data) {
-        if (topic == "nsPref:changed")
-            ThemeUtils.setStylePreset();
-    },
-};
-
-Services.prefs.addObserver("Echelon.Appearance.Preset", presetObserver, false);
-
-let EXPORTED_SYMBOLS = [ "PrefUtils", "BrandUtils", "waitForElement", "renderElement", "VersionUtils", "ThemeUtils" ];
+let EXPORTED_SYMBOLS = [ "PrefUtils", "BrandUtils", "waitForElement", "renderElement" ];

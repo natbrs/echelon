@@ -16,7 +16,6 @@ waitForElement = waitForElement.bind(window);
 ChromeUtils.defineESModuleGetters(window, {
     EchelonDragPositionManager: "chrome://userscripts/content/modules/EchelonDragPositionManager.sys.mjs",
     EchelonDebugTools: "chrome://userscripts/content/modules/EchelonDebugTools.sys.mjs",
-    EchelonUpdateChecker: "chrome://userscripts/content/modules/EchelonUpdateChecker.sys.mjs",
     DragPositionManager: "resource:///modules/DragPositionManager.sys.mjs"
 });
 const Debug = EchelonDebugTools.getDebugController("AustralisPanel");
@@ -56,7 +55,6 @@ const DEFAULT_PANEL_LAYOUT = [
     "fullscreen-button",
     "find-button",
     "preferences-button",
-    "echelon-button",
     "add-ons-button",
     "developer-button"
 ];
@@ -185,8 +183,6 @@ class AustralisPanelController
             let syncContainer = this.mainView.querySelector("#PanelUI-fxa-container");
             syncContainer.style.display = "none";
         }
-
-        this.echelonUpdates();
     }
 
     renderPanel()
@@ -227,11 +223,12 @@ class AustralisPanelController
 
                     elm("xul:footer", { "id": "PanelUI-footer" }, [
                         elm("xul:vbox", { "id": "PanelUI-footer-addons" }),
-                        elm("xul:toolbarbutton", {
-                            "class": "panel-banner-item echelon-updates",
-                            "label": str("echelon_update_available_label"),
-                            "hidden": "true"
-                        }),
+                        // elm("xul:toolbarbutton", {
+                        // 	"class": "panel-banner-item",
+                        // 	"label-update-available": "&updateAvailable.panelUI.label",
+                        // 	"label-update-manual": "&updateManual.panelUI.label",
+                        // 	"label-update-restart": "&updateRestart.panelUI.label2"
+                        // }),
                         elm("xul:hbox", { "id": "PanelUI-fxa-container" }, [
                             elm("xul:hbox", {
                                 "id": "PanelUI-fxa-status",
@@ -272,7 +269,6 @@ class AustralisPanelController
                             elm("xul:toolbarbutton", {
                                 "id": "PanelUI-customize",
                                 "label": str("appmenu_customize.label"),
-                                "tooltip": str("appmenu_customize.tooltip"),
                                 "exitLabel": str("appmenu_customize.exit_label"),
                                 "exitTooltiptext": str("appmenu_customize.exit_tooltip"),
                                 "closemenu": "none",
@@ -292,7 +288,7 @@ class AustralisPanelController
                             elm("xul:toolbarbutton", {
                                 "id": "PanelUI-quit",
                                 "label": "&quitApplicationCmdWin2.label;",
-                                "tooltiptext": str("appmenu_quit.tooltip", BrandUtils.getBrandingKey("brandShortName")),
+                                "tooltiptext": str("appmenu_quit.tooltip", BrandUtils.getBrowserName()),
                                 "command": "cmd_quitApplication"
                             })
                         ])
@@ -399,13 +395,6 @@ class AustralisPanelController
                 ])
             ])
         ]);
-    }
-
-    async echelonUpdates() 
-    {
-        if (await EchelonUpdateChecker.checkForUpdate()) {
-            this.mainView.querySelector(".echelon-updates").removeAttribute("hidden")
-        }
     }
 
     /**
@@ -1572,23 +1561,13 @@ class AustralisPanelController
             let footer = customizationContainer.querySelector("#customization-footer");
             let contentContainer = document.querySelector("#customization-content-container");
             let panelContainer = document.querySelector("#customization-panel-container");
-            
-            let customizationDensityPanel = await waitForElement("#customization-uidensity-menu");
-            customizationDensityPanel.setAttribute("position", "topcenter bottomleft");
 
-            let customizationDensityPanelHeader = MozXULElement.parseXULToFragment(
-            `
-                <label id="customization-uidensity-menu-header" />
-            `);
-            customizationDensityPanel.insertBefore(customizationDensityPanelHeader, customizationDensityPanel.firstChild); 
-            
-            const [density] = await document.l10n.formatMessages([
-                { id: "customize-mode-uidensity" }
-            ]); 
-            const densityValue = density.attributes[0].value;
-            customizationDensityPanel.querySelector("#customization-uidensity-menu-header").value = densityValue;
-
-            customizationContainer.appendChild(panelContainer);
+            let hackWrapper = renderElement("div", {
+                "class": "echelon-customization-hack-container"
+            });
+            footer.insertAdjacentElement("beforebegin", hackWrapper);
+            hackWrapper.appendChild(contentContainer);
+            hackWrapper.appendChild(panelContainer);
 
             panelContainer.querySelector("#customization-panelHolder").style.display = "none";
         }
@@ -1645,10 +1624,6 @@ class AustralisPanelController
             this.shadowManager.setOriginalView();
             this.parent.subViewManager.ignoreMutations = true;
 
-            // Hide the PanelUI popup when entering customize mode.
-            let panelUIPoup = document.querySelector("#PanelUI-popup");
-            panelUIPoup.hidePopup();
-
             // Move the main view over to the customisation container.
             let newContainer = document.querySelector("#customization-panelWrapper .panel-arrowcontent");
             newContainer.appendChild(this.mainView);
@@ -1698,14 +1673,10 @@ class AustralisPanelController
             let customizeButton = this.mainView.querySelector("#PanelUI-customize");
             customizeButton.disabled = false;
             customizeButton._previousLabel = customizeButton.label;
-            customizeButton._previousTooltip = customizeButton.tooltip;
             customizeButton.label = customizeButton.getAttribute("exitLabel");
             customizeButton.tooltipText = customizeButton.getAttribute("exitTooltiptext");
 
             EchelonDragPositionManager.add(window, "PanelUI-contents", this.contents);
-
-            let contentContainer = document.querySelector("#customization-content-container");
-            contentContainer.querySelector("#customization-header").textContent = str("customizeMode.menuAndToolbars.header2");
         }
 
         /**
@@ -1750,7 +1721,6 @@ class AustralisPanelController
 
             let customizeButton = this.mainView.querySelector("#PanelUI-customize");
             customizeButton.label = customizeButton._previousLabel;
-            customizeButton.tooltipText = customizeButton._previousTooltip;
             delete customizeButton._previousLabel;
 
             EchelonDragPositionManager.remove(window, "PanelUI-contents", this.contents);

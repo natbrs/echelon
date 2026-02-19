@@ -10,11 +10,11 @@ if (windowRoot?.ownerGlobal?.gBrowser)
     }
 }
 
-const { EchelonThemeManager } = ChromeUtils.importESModule("chrome://modules/content/EchelonThemeManager.sys.mjs");
+const { EchelonThemeManager } = ChromeUtils.import("chrome://modules/content/EchelonThemeManager.js");
 let g_themeManager = new EchelonThemeManager;
 g_themeManager.init(
     document.documentElement,
     {
-        style: true
+        bools: ["Echelon.Appearance.XP"]
     }
 );
