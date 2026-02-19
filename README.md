@@ -1,20 +1,22 @@
 <p align="center">
     <img src="images/echelon.png" alt="Echelon logo">
     <h6 align="center"><i>Bring back the "better Internet".</i></h6>
-    
 </p>
 
 ___
 
 <h3 align="center">
-<b>This rewrite of Echelon is a work in progress. Features may change and might not be fully functional.</b>
+<b>Maintenance Fork: This build is optimized for Firefox 128.0esr or older.</b>
 </h3>
 
 <p align="center">
   Echelon is a Mozilla Firefox (115-latest) theme that restores the look and feel of older versions.
-
-  <img src="images/preview.png" alt="Echelon logo">
+  
+  <img src="images/preview.png" alt="Echelon Preview">
 </p>
+
+## Fork Overview
+This repository is a specialized fork developed to enhance compatibility with **Firefox 128.0esr**. It incorporates critical UI patches and stability backports based on the **Echelon 1.2** release.
 
 ## Coming from Echelon 1?
 Echelon versions before release 2.0 is no longer supported. The update checker may display an error message, if you wish to continue using Echelon 1, disable update checks on the Echelon Options window.
